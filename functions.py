@@ -59,6 +59,9 @@ def age_height_corr(sex,age):
         elif age >= 30:
             mean = lin_func(age, 30,70, 166.2,160)
 
+    else:
+        raise(ValueError('Invalid gender'))
+
     return mean
 
 def age_education_corr(age):
@@ -86,6 +89,8 @@ def age_education_corr(age):
         p = [34, 31, 31, 4, 0]
     elif age >= 60:
         p = [34, 20, 15, 1, 0]
+    else:
+        raise(ValueError('Invalid age'))
 
     return np.array(p) / np.sum(p) 
 
@@ -108,6 +113,8 @@ def alcohol_corr(education, age, limits=[0,11]):
         elif education == 'Schule':
             sigma = [1,1,1]
             mu = [0,0,0]  
+        else:
+            raise(ValueError('Invalid education'))
 
         if age <= 12:
             return int(x==0)
@@ -117,6 +124,8 @@ def alcohol_corr(education, age, limits=[0,11]):
             return sc.norm.pdf(x, mu[1], sigma[1])
         elif age >= 60 :
             return sc.norm.pdf(x, mu[2], sigma[2])
+        else:
+            raise(ValueError('Invalid age'))
 
     p = [func(i) for i in range(limits[0], limits[1])]
     return np.array(p) / np.sum(p) 
@@ -156,9 +165,8 @@ def smoke_corr(education, age, alcohol, limits=[0,11]):
             mu = np.array([ [lin_func(age, 13,21, -1,3), 0],
                             [None, None],
                             [None, None]])  
-
         else:
-            raise(ValueError)
+            raise(ValueError('Invalid education'))
 
         X = x * np.ones(2)
         cov = sigmaq[0] * np.eye(2)
@@ -171,6 +179,8 @@ def smoke_corr(education, age, alcohol, limits=[0,11]):
             return sc.multivariate_normal.pdf(X, mu[1], cov)
         elif age >= 60 :
             return sc.multivariate_normal.pdf(X, mu[2], cov)
+        else:
+            raise(ValueError('Invalid age'))
 
 
     p = [func(i) for i in range(limits[0], limits[1])]
@@ -198,6 +208,8 @@ def sport_corr(education, age, alcohol, smoke, limits=[0,11]):
         elif age >= 60 :
             sigmaq = 4
             mean = np.array([lin_func(age, 50,80, 4,7), sport_alcohol, sport_smoke])
+        else:
+            raise(ValueError('Invalid age'))
             
         cov = sigmaq * np.eye(3)
         X = x * np.ones(3)
@@ -217,7 +229,7 @@ def bmi_corr(sex, age, alcohol, smoke, sport):
         age_limit = np.array([  [0,20],
                                 [20,30],
                                 [30,80],
-                                [80,100]])
+                                [80,101]])
 
         lin_ac = lin_func(alcohol, 0,10, -3,4)
         lin_sm = lin_func(smoke, 0,10, 0,-4)
@@ -236,7 +248,7 @@ def bmi_corr(sex, age, alcohol, smoke, sport):
                                 [20,30],
                                 [30,50],
                                 [50,80],
-                                [80,100]])
+                                [80,101]])
 
         lin_ac = lin_func(alcohol, 0,10, -3,4)
         lin_sm = lin_func(smoke, 0,10, 0,-4)
@@ -249,6 +261,9 @@ def bmi_corr(sex, age, alcohol, smoke, sport):
                             [4,4,4,4]])
 
         mean = [22.5, 25, 27.3, 28.5, 26.3]
+    
+    else:
+        raise(ValueError('Invalid gender'))
 
         
     mu = np.array([ [mean[i], mean[i] + lin_ac, mean[i] + lin_sm, mean[i] + lin_sp ] for i in range(len(mean)) ])
@@ -258,6 +273,8 @@ def bmi_corr(sex, age, alcohol, smoke, sport):
         if age in range(age_limit[i,0],age_limit[i,1]):
             p = (1/sigma[i,:]**2) / np.sum(1/sigma[i,:]**2)
             return np.average(mu[i,:], weights=p), sc.gmean(sigma[i,:]**2)**(1/2)
+
+    raise(ValueError('Invalid age'))
 
 
 
