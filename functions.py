@@ -67,6 +67,7 @@ def age_height_corr(sex,age):
 def age_education_corr(age):
     """
     source: https://de.statista.com/statistik/daten/studie/1988/umfrage/bildungsabschluesse-in-deutschland/
+            https://de.statista.com/statistik/daten/studie/197269/umfrage/allgemeiner-bildungsstand-der-bevoelkerung-in-deutschland-nach-dem-alter/#professional
     """    
 
     #['Abitur', 'mtl. Reife', 'Hauptschule', 'kein Schulabschluss', 'noch in der Schule']
@@ -85,10 +86,12 @@ def age_education_corr(age):
         p = [15, 29, 31, 4, 21]
     elif age == 19:
         p = [30, 30, 31, 4, 5]
-    elif age in range(20,60):
-        p = [34, 31, 31, 4, 0]
-    elif age >= 60:
-        p = [34, 20, 15, 1, 0]
+    elif age in range(20,30):
+        p = [54.2, 26.6, 14.6, 4, 0]
+    elif age in range(30,65):
+        p = [lin_func(age, 30, 65, 49.4,27.5), lin_func(age, 30, 65, 29.2,25), lin_func(age, 30, 65, 16.7,33.3), 4, 0]
+    elif age >= 65:
+        p = [19, 23.5, 52.9, 4.3, 0]
     else:
         raise(ValueError('Invalid age'))
 
@@ -134,6 +137,7 @@ def alcohol_corr(education, age, limits=[0,11]):
 def smoke_corr(education, age, alcohol, limits=[0,11]):
     """
     source: https://www.focus.de/gesundheit/gesundleben/antiaging/gebildete-leben-laenger-lebenserwartung_id_2262881.html
+            https://www.stopsmoking.ch/gesundheit-mit-tabak-und-nikotin/risiken-fuer-die-gesundheit/alkohol-und-tabak-kumuliertes-gesundheitsrisiko/
     """
 
     def func(x):
@@ -190,24 +194,24 @@ def smoke_corr(education, age, alcohol, limits=[0,11]):
 def sport_corr(education, age, alcohol, smoke, limits=[0,11]):
     def func(x):
 
-        sport_alcohol = lin_func(alcohol, 0,10, 6,-5)
-        sport_smoke = lin_func(smoke, 0,10, 4,-8)
+        sport_alcohol = lin_func(alcohol, 0,10, 3,-6)
+        sport_smoke = lin_func(smoke, 0,10, 0,-8)
 
         if age <= 10:
             sigmaq = 4
-            mean = np.array([lin_func(age, 0,10, -3,5), sport_alcohol, sport_smoke])
+            mean = lin_func(age, 0,10, -3,5) * np.ones(3) + np.array([0, sport_alcohol, sport_smoke])
 
         elif age in range(11,22):
             sigmaq = 9
-            mean = np.array([lin_func(age, 10,22, 5,4), sport_alcohol, sport_smoke])
+            mean = lin_func(age, 10,22, 5,4) * np.ones(3) + np.array([0, sport_alcohol, sport_smoke])
 
         elif age in range(22,60):
             sigmaq = 9
-            mean = np.array([4, sport_alcohol, sport_smoke])
+            mean = 4 * np.ones(3) + np.array([0, sport_alcohol, sport_smoke])
 
         elif age >= 60 :
             sigmaq = 4
-            mean = np.array([lin_func(age, 50,80, 4,7), sport_alcohol, sport_smoke])
+            mean = lin_func(age, 60,80, 4,7) * np.ones(3) + np.array([0, sport_alcohol, sport_smoke])
         else:
             raise(ValueError('Invalid age'))
             
@@ -233,7 +237,7 @@ def bmi_corr(sex, age, alcohol, smoke, sport):
 
         lin_ac = lin_func(alcohol, 0,10, -3,4)
         lin_sm = lin_func(smoke, 0,10, 0,-4)
-        lin_sp = lin_func(sport, 0,10, 5,-5)
+        lin_sp = lin_func(sport, 0,10, 5,-8)
         
         sigma = np.array([  [4,4,4,4],
                             [4,4,4,4],
@@ -244,21 +248,13 @@ def bmi_corr(sex, age, alcohol, smoke, sport):
 
     elif sex == 'f':
 
-        age_limit = np.array([  [0,20],
-                                [20,30],
-                                [30,50],
-                                [50,80],
-                                [80,101]])
+        age_limit = 6 * np.ones([5,4])
 
         lin_ac = lin_func(alcohol, 0,10, -3,4)
         lin_sm = lin_func(smoke, 0,10, 0,-4)
-        lin_sp = lin_func(sport, 0,10, 5,-5)
+        lin_sp = lin_func(sport, 0,10, 5,-8)
         
-        sigma = np.array([  [4,4,4,4],
-                            [4,4,4,4],
-                            [4,4,4,4],
-                            [4,4,4,4],
-                            [4,4,4,4]])
+        sigma = 6 * np.ones([5,4])
 
         mean = [22.5, 25, 27.3, 28.5, 26.3]
     
@@ -276,7 +272,8 @@ def bmi_corr(sex, age, alcohol, smoke, sport):
 
     raise(ValueError('Invalid age'))
 
-
+def income_corr(sex, age, education, alcohol):
+    pass
 
 
 if __name__ == '__main__':
