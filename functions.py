@@ -230,25 +230,19 @@ def bmi_corr(sex, age, alcohol, smoke, sport):
 
     if sex == 'm':
 
-        age_limit = np.array([  [0,20],
-                                [20,30],
-                                [30,80],
-                                [80,101]])
+        age_limit = np.array([0,20,30,80,101])
 
         lin_ac = lin_func(alcohol, 0,10, -3,4)
         lin_sm = lin_func(smoke, 0,10, 0,-4)
         lin_sp = lin_func(sport, 0,10, 5,-8)
         
-        sigma = np.array([  [4,4,4,4],
-                            [4,4,4,4],
-                            [4,4,4,4],
-                            [4,4,4,4]])
+        sigma = 6 * np.ones([5,4])
 
         mean = [22.5, 25.6, 28.3, 27]
 
     elif sex == 'f':
 
-        age_limit = 6 * np.ones([5,4])
+        age_limit = np.array([0,20,30,50,80,101])
 
         lin_ac = lin_func(alcohol, 0,10, -3,4)
         lin_sm = lin_func(smoke, 0,10, 0,-4)
@@ -265,8 +259,8 @@ def bmi_corr(sex, age, alcohol, smoke, sport):
     mu = np.array([ [mean[i], mean[i] + lin_ac, mean[i] + lin_sm, mean[i] + lin_sp ] for i in range(len(mean)) ])
 
 
-    for i in range(age_limit.shape[0]):
-        if age in range(age_limit[i,0],age_limit[i,1]):
+    for i in range(age_limit.shape[0]-1):
+        if age in range(age_limit[i],age_limit[i+1]):
             p = (1/sigma[i,:]**2) / np.sum(1/sigma[i,:]**2)
             return np.average(mu[i,:], weights=p), sc.gmean(sigma[i,:]**2)**(1/2)
 
