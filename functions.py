@@ -10,7 +10,7 @@ def import_age_dist(year=2018):
     source: https://service.destatis.de/bevoelkerungspyramide/#!y=2047
     """
 
-    age_dist = pd.read_csv('age_dist.csv', sep=';', decimal='.')
+    age_dist = pd.read_csv('import/age_dist.csv', sep=';', decimal='.')
     age_dist.set_index(['Variante', 'Simulationsjahr', 'mf'], inplace=True)
     age_dist.rename(columns = {**{'Bev':'Summe'}, **{age_dist.keys()[i]:i for i in range(1,len(age_dist.keys()))} }, inplace = True)
     #print(age_dist)
@@ -33,15 +33,20 @@ def eyecolor():
     """
     source: https://kurzwissen.de/augenfarben-haeufigkeit/
     """
-    #['brown', 'blue', 'green', 'grey', 'others']
+    eyecolors = ['brown', 'blue', 'green', 'grey', 'others']
 
     p = [31, 30, 18, 3, 17]
-    return np.array(p) / np.sum(p) 
+    p = np.array(p) / np.sum(p) 
+
+    return nr.choice(eyecolors, p = p )
+
 
 def age_height_corr(sex,age):
     """
     source: https://www.gbe-bund.de/gbe/!pkg_olap_tables.prc_set_orientation?p_uid=gast&p_aid=45630374&p_sprache=D&p_help=2&p_indnr=223&p_ansnr=22450969&p_version=6&D.000=3&D.002=2&D.003=1&D.100=1
     """
+
+    sigma = lin_func(min(20, age), 1,20, 3,10)
 
     if sex == 'm':
         if age <= 21:
@@ -60,9 +65,10 @@ def age_height_corr(sex,age):
             mean = lin_func(age, 30,70, 166.2,160)
 
     else:
-        raise(ValueError('Invalid gender'))
+        raise(ValueError('Invalid gender', sex))
 
-    return mean
+    return round( nr.normal( loc = mean, scale = sigma), 1)
+
 
 def age_education_corr(age):
     """
@@ -70,7 +76,7 @@ def age_education_corr(age):
             https://de.statista.com/statistik/daten/studie/197269/umfrage/allgemeiner-bildungsstand-der-bevoelkerung-in-deutschland-nach-dem-alter/#professional
     """    
 
-    #['Abitur', 'mtl. Reife', 'Hauptschule', 'kein Schulabschluss', 'noch in der Schule']
+    graduation = ['Abitur', 'mtl. Reife', 'Hauptschule', 'kein Schulabschluss', 'Schule']
 
     if age < 14:
         p = [0, 0, 0, 0, 100]
@@ -93,9 +99,12 @@ def age_education_corr(age):
     elif age >= 65:
         p = [19, 23.5, 52.9, 4.3, 0]
     else:
-        raise(ValueError('Invalid age'))
+        raise(ValueError('Invalid age', age))
 
-    return np.array(p) / np.sum(p) 
+    p = np.array(p) / np.sum(p)  
+
+    return nr.choice(graduation, p=p)
+
 
 def alcohol_corr(education, age, limits=[0,11]):
 
@@ -117,7 +126,7 @@ def alcohol_corr(education, age, limits=[0,11]):
             sigma = [1,1,1]
             mu = [0,0,0]  
         else:
-            raise(ValueError('Invalid education'))
+            raise(ValueError('Invalid education:', education))
 
         if age <= 12:
             return int(x==0)
@@ -128,10 +137,12 @@ def alcohol_corr(education, age, limits=[0,11]):
         elif age >= 60 :
             return sc.norm.pdf(x, mu[2], sigma[2])
         else:
-            raise(ValueError('Invalid age'))
+            raise(ValueError('Invalid age', age))
 
     p = [func(i) for i in range(limits[0], limits[1])]
-    return np.array(p) / np.sum(p) 
+    p = np.array(p) / np.sum(p)  
+
+    return nr.choice(range(limits[0], limits[1]), p = p)
 
 
 def smoke_corr(education, age, alcohol, limits=[0,11]):
@@ -173,22 +184,23 @@ def smoke_corr(education, age, alcohol, limits=[0,11]):
             raise(ValueError('Invalid education'))
 
         X = x * np.ones(2)
-        cov = sigmaq[0] * np.eye(2)
 
         if age <= 14:
             return int(x==0)
         elif age in range(14,22):
-            return sc.multivariate_normal.pdf(X, mu[0], cov)
+            return sc.multivariate_normal.pdf(X, mu[0], cov = sigmaq[0] * np.eye(2))
         elif age in range(22,60):
-            return sc.multivariate_normal.pdf(X, mu[1], cov)
+            return sc.multivariate_normal.pdf(X, mu[1], cov = sigmaq[1] * np.eye(2))
         elif age >= 60 :
-            return sc.multivariate_normal.pdf(X, mu[2], cov)
+            return sc.multivariate_normal.pdf(X, mu[2], cov = sigmaq[2] * np.eye(2))
         else:
-            raise(ValueError('Invalid age'))
+            raise(ValueError('Invalid age', age))
 
 
     p = [func(i) for i in range(limits[0], limits[1])]
-    return np.array(p) / np.sum(p)  
+    p = np.array(p) / np.sum(p)  
+
+    return nr.choice(range(limits[0], limits[1]), p = p)
 
 
 def sport_corr(education, age, alcohol, smoke, limits=[0,11]):
@@ -213,14 +225,16 @@ def sport_corr(education, age, alcohol, smoke, limits=[0,11]):
             sigmaq = 4
             mean = lin_func(age, 60,80, 4,7) * np.ones(3) + np.array([0, sport_alcohol, sport_smoke])
         else:
-            raise(ValueError('Invalid age'))
+            raise(ValueError('Invalid age', age))
             
         cov = sigmaq * np.eye(3)
         X = x * np.ones(3)
         return sc.multivariate_normal.pdf(X, mean, cov)
 
     p = [func(i) for i in range(limits[0], limits[1])]
-    return np.array(p) / np.sum(p) 
+    p = np.array(p) / np.sum(p) 
+
+    return nr.choice(range(limits[0], limits[1]), p = p)
 
 
 def bmi_corr(sex, age, alcohol, smoke, sport):
@@ -232,9 +246,9 @@ def bmi_corr(sex, age, alcohol, smoke, sport):
 
         age_limit = np.array([0,20,30,80,101])
 
-        lin_ac = lin_func(alcohol, 0,10, -3,4)
+        lin_ac = lin_func(alcohol, 0,10, -3,8)
         lin_sm = lin_func(smoke, 0,10, 0,-4)
-        lin_sp = lin_func(sport, 0,10, 5,-8)
+        lin_sp = lin_func(sport, 0,10, 5,-10)
         
         sigma = 6 * np.ones([5,4])
 
@@ -244,16 +258,16 @@ def bmi_corr(sex, age, alcohol, smoke, sport):
 
         age_limit = np.array([0,20,30,50,80,101])
 
-        lin_ac = lin_func(alcohol, 0,10, -3,4)
+        lin_ac = lin_func(alcohol, 0,10, -3,8)
         lin_sm = lin_func(smoke, 0,10, 0,-4)
-        lin_sp = lin_func(sport, 0,10, 5,-8)
+        lin_sp = lin_func(sport, 0,10, 5,-10)
         
         sigma = 6 * np.ones([5,4])
 
         mean = [22.5, 25, 27.3, 28.5, 26.3]
     
     else:
-        raise(ValueError('Invalid gender'))
+        raise(ValueError('Invalid gender', sex))
 
         
     mu = np.array([ [mean[i], mean[i] + lin_ac, mean[i] + lin_sm, mean[i] + lin_sp ] for i in range(len(mean)) ])
@@ -262,12 +276,86 @@ def bmi_corr(sex, age, alcohol, smoke, sport):
     for i in range(age_limit.shape[0]-1):
         if age in range(age_limit[i],age_limit[i+1]):
             p = (1/sigma[i,:]**2) / np.sum(1/sigma[i,:]**2)
-            return np.average(mu[i,:], weights=p), sc.gmean(sigma[i,:]**2)**(1/2)
+            mu = np.average(mu[i,:], weights=p); sigma = sc.gmean(sigma[i,:]**2)**(1/2)
 
-    raise(ValueError('Invalid age'))
+    if not mu or not sigma:
+        raise(ValueError('Invalid age', age))
+    else:
+        return round( nr.normal( loc = mu, scale = sigma), 1)
+
 
 def income_corr(sex, age, education, alcohol):
-    pass
+
+    age_limit = np.array([13,22,65,101])
+
+    if education == 'Abitur':
+        sigma = np.array([  [100,100],
+                            [2000,2000],
+                            [500,500]])
+        mu = np.array([ [lin_func(age, 13,21, 0,600)],
+                        [lin_func(age, 22,59, 1000,4000)],
+                        [lin_func(age, 65,80, 2000,2000)]])   * np.ones([3,2])
+
+    elif education == 'mtl. Reife':
+        sigma = np.array([  [100,100],
+                            [1000,1000],
+                            [500,500]])
+        mu = np.array([ [lin_func(age, 13,21, 300,1000)],
+                        [lin_func(age, 22,59, 1500,3000)],
+                        [lin_func(age, 65,80, 1500,1500)]])     * np.ones([3,2])
+
+    elif education == 'Hauptschule':
+        sigma = np.array([  [100,100],
+                            [500,500],
+                            [500,500]])
+        mu = np.array([ [lin_func(age, 13,21,  300,600)],
+                        [lin_func(age, 22,59, 1000,2000)],
+                        [lin_func(age, 65,80, 1000,1000)]])   * np.ones([3,2])
+
+    elif education == 'kein Schulabschluss':
+        sigma = np.array([  [100,100],
+                            [500,500],
+                            [50,50]])
+        mu = np.array([ [lin_func(age, 13,21, 0,400)],
+                        [lin_func(age, 22,59, 450, 1000)],
+                        [lin_func(age, 65,80, 500,500)]])    * np.ones([3,2])
+
+    elif education == 'Schule':
+        sigma = np.array([  [100,100],
+                            [0,0],
+                            [0,0]])
+        mu = np.array([[lin_func(age, 13,21, 0,500)],
+                        [0],
+                        [0]])  * np.ones([3,2])
+    else:
+        raise(ValueError('Invalid education'))
+
+
+    if sex == 'm':
+        mu[:,0] *= 1.083
+    elif sex == 'f':
+        mu[:,0] *= 0.917
+
+    mu[:,1] *= lin_func(alcohol, 0,10, 1,0.3)
+
+
+    if education == 'Schule' or age <= 13:
+        return 0
+
+    for i in range(age_limit.shape[0]-1):
+        if age in range(age_limit[i],age_limit[i+1]):
+            p = (1/sigma[i,:]**2) / np.sum(1/sigma[i,:]**2)
+            mean = np.average(mu[i,:], weights=p); sigma = sc.gmean(sigma[i,:]**2)**(1/2)
+
+    if not mean or not sigma:
+        raise(ValueError('Invalid age', age))
+    else:
+        income = -1
+        while income < 0:
+            income = round( nr.normal( loc = mean, scale = sigma), 1)
+
+    return income
+
 
 
 if __name__ == '__main__':
