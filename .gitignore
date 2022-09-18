@@ -1,3 +1,5 @@
 __pycache__
-*.xlsx
 decision_tree_test.code-workspace
+
+*.xlsx
+models/*
