@@ -3,13 +3,18 @@ import numpy as np
 import numpy.random as nr
 import multiprocessing
 from functions import *
+from plots import * 
 
 
-entries = 100
+entries = 1000
 tasks = 10
 multiprocess = True
-save = True 
 
+save = True
+save_path = 'export/population_data.xlsx'
+
+order = ['sex', 'age', 'eye_color', 'height', 'weight', 'bmi', 'education', 'income', 'alcohol', 'smoke', 'sport']
+#order = ['sex', 'age', 'height', 'education', 'income', 'bmi', 'alcohol', 'smoke', 'sport']
 
 def loop(iterations=200):
 
@@ -26,26 +31,26 @@ def loop(iterations=200):
 
         series['age'] = nr.choice(range(1,101), p = current_age_dist.loc[series['sex']].values )
 
-        #series['eye_color'] = nr.choice(['brown', 'blue', 'green', 'grey', 'others'], p = eyecolor() )
+        series['eye_color'] = eyecolor()
         
-        series['height'] = round( 
-                                nr.normal( loc = age_height_corr(series['sex'], series['age'] ), 
-                                        scale = lin_func(min(20, series['age']), 1,20, 3,10) ), 
-                                1)
+        series['height'] = age_height_corr(series['sex'], series['age'] )
 
-        series['education'] = nr.choice(['Abitur', 'mtl. Reife', 'Hauptschule', 'kein Schulabschluss', 'Schule'], p=age_education_corr(series['age']))
+        series['education'] = age_education_corr(series['age'])
 
-        series['alcohol'] = nr.choice(range(11), p = alcohol_corr(series['education'], series['age']) )
+        series['alcohol'] = alcohol_corr(series['education'], series['age'])
 
-        series['smoke'] = nr.choice(range(11), p = smoke_corr(series['education'], series['age'], series['alcohol']) )
+        series['smoke'] = smoke_corr(series['education'], series['age'], series['alcohol'])
 
-        series['sport'] = nr.choice(range(11), p = sport_corr(series['education'], series['age'], series['alcohol'], series['smoke']) )
+        series['sport'] = sport_corr(series['education'], series['age'], series['alcohol'], series['smoke'])
 
-        mu, sigma = bmi_corr(series['sex'], series['age'], series['alcohol'], series['smoke'], series['sport'])
-
-        series['bmi'] = round( nr.normal( loc = mu, scale = sigma), 1)
+        series['bmi'] = bmi_corr(series['sex'], series['age'], series['alcohol'], series['smoke'], series['sport'])
 
         series['weight'] = round(series['bmi'] * series['height']**2 / 10**(4),1)
+        
+        series['income'] = income_corr(series['sex'], series['age'], series['education'], series['alcohol'])
+
+
+        series = {key : series[key] for key in order} 
 
         data = pd.concat([data,pd.Series(series).to_frame().T], ignore_index=True)
     
@@ -70,7 +75,7 @@ if __name__ == '__main__':
         data = loop(entries)
 
     if save:
-        data.to_excel('population_data.xlsx')
+        data.to_excel(save_path)
         #data.to_csv('population_data.csv')
 
     with pd.option_context('display.max_rows', 10,
@@ -79,4 +84,5 @@ if __name__ == '__main__':
                         ):
         #print(data[data['sport'] >= 8])
         print(data)
+        plot_bmi_sport(data)
 
