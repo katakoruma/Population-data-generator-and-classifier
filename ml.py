@@ -103,9 +103,14 @@ class deep_net:
 
                 index = tf.argmax(Y, axis=1)
                 print(index)
-                Y = [labels[i] for i in index]
+                Y_p = [labels[i] for i in index]
 
-            data[f'{self.label}_predict'] = Y
+                data[f'{self.label}_predict'] = Y_p
+                data[f'{self.label}_predict_p'] = [Y[i,:] for i in range(Y.shape[0])]
+            
+            else:
+
+                data[f'{self.label}_predict'] = Y
 
         else:
             model = models.load_model(self.path + '%s/%s/%s.h5'%(self.name,self.folder,model_imp))
