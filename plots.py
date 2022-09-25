@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 
 imp_file = 'export/training_data.xlsx'
-#imp_file = 'export/population_data.xlsx'
+imp_file = 'export/population_data.xlsx'
 
 data = pd.read_excel(imp_file)
 
@@ -70,7 +70,7 @@ def plot_bmi_sport(data):
 
     plt.figure()
     plt.hist(   [data.loc[(data['sport'] == i), ('bmi')].values for i in range(11)], 
-            bins=20, 
+            bins=30, 
             #range=(1,100),
             density = False,
             histtype ='bar',
