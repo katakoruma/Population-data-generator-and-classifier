@@ -14,20 +14,20 @@ backend = keras.backend
 #########
 #TRAINING
 
-imp_train = 'data/training_data_edu.xlsx'
-imp_test = 'data/test_data_edu.xlsx'
+imp_train = 'data/training_data.xlsx'
+imp_test = 'data/test_data.xlsx'
 
-save_path = 'models/rfm_edu'
+save_path = 'models/rfm'
 
 metrics = ["mse", "mape"]
 metrics = ["mse","binary_crossentropy", "categorical_crossentropy", "accuracy"]
-metrics = ["mse", "accuracy"]
+metrics = ["mse", "sparse_categorical_accuracy", "accuracy"]
 #########
 #PREDICTION
 
-model_imp = 'models/rfm_edu_education_20220925-0358'
-imp =  'data/population_data_edu.xlsx'
-exp = 'data/population_data_edu_predict.xlsx'
+model_imp = 'models/rfm_education_20220925-0340'
+imp =  'data/population_data.xlsx'
+exp = 'data/population_data_predict.xlsx'
 
 ########
 label = 'education'
@@ -37,13 +37,13 @@ task = tfdf.keras.Task.CLASSIFICATION
 
 
 def build_model(task, hp=None):
-    model = tfdf.keras.RandomForestModel(task=task, num_trees=512, max_depth=64,)
+    model = tfdf.keras.RandomForestModel(task=task, num_trees=8, max_depth=16,)
     return model
 
 
 if __name__ == '__main__':
 
-    mode = 'p'
+    mode = 't'
 
     dn = deep_net(task, label, dt=True)
 
