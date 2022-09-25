@@ -3,8 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-imp_file = 'export/training_data.xlsx'
-imp_file = 'export/population_data.xlsx'
+imp_file = 'data/training_data.xlsx'
+imp_file = 'data/population_data.xlsx'
 
 data = pd.read_excel(imp_file)
 
