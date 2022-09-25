@@ -11,6 +11,24 @@ models = keras.models
 layers = keras.layers
 
 
+def class_to_num(df, key=None, replace_all=False):
+    
+    if replace_all:
+
+        for key in df.keys():
+            if type(df.at[0,key]) == str:
+                df = class_to_num(df, key=key, replace_all=False)
+
+    else:
+        #print('set: ', df[key].values)
+        labels = list(set(df[key])); labels.sort()
+        print(f'labels for {key}: ', labels)
+
+        df[key] = [labels.index(i) for i in df[key].values]
+        print(df)
+
+
+    return df
 
 class deep_net:
     
@@ -26,57 +44,79 @@ class deep_net:
         self.label = label
         self.task = task
 
-    def training(self, build_model, imp_train, imp_test, save_path, metrics, process=None):
+    def training(self, build_model, imp_train, imp_test, save_path, metrics, lr=None, process=None):
 
         model = build_model(task=self.task)
         data_train = pd.read_excel(imp_train, index_col=0)
         data_test = pd.read_excel(imp_test, index_col=0)
 
+        if self.task == tfdf.keras.Task.CLASSIFICATION:
+            print('set: ', data_train[self.label].values)
+            labels = list(set(data_train[self.label])); labels.sort()
+            print('labels: ', labels)
 
-        if self.dt:
+            data_train[self.label] = [labels.index(i) for i in data_train[self.label].values]
+            data_test[self.label] = [labels.index(i) for i in data_test[self.label].values]
 
-            if self.task == tfdf.keras.Task.CLASSIFICATION:
-                print('set: ', data_train[self.label].values)
-                labels = list(set(data_train[self.label])); labels.sort()
-                print('labels: ', labels)
+            print(data_train)
 
-                data_train[self.label] = [labels.index(i) for i in data_train[self.label].values]
-                data_test[self.label] = [labels.index(i) for i in data_test[self.label].values]
+        tf_train = tfdf.keras.pd_dataframe_to_tf_dataset(data_train, max_num_classes=len(data_train), label=self.label, task=self.task)
+        tf_test = tfdf.keras.pd_dataframe_to_tf_dataset(data_test, max_num_classes=len(data_test), label=self.label, task=self.task)
 
-                print(data_train)
+        #print(np.min(X_train['correction']), np.max(X_train['correction']))
 
-            tf_train = tfdf.keras.pd_dataframe_to_tf_dataset(data_train, max_num_classes=len(data_train), label=self.label, task=self.task)
-            tf_test = tfdf.keras.pd_dataframe_to_tf_dataset(data_test, max_num_classes=len(data_test), label=self.label, task=self.task)
+        print('\nCOMPILE\n')
+        model.compile(
+        metrics=metrics)
 
-            #print(np.min(X_train['correction']), np.max(X_train['correction']))
+        print('\nFIT\n')
+        model.fit(tf_train)
+        print('\nEVALUATE\n')
+        model.evaluate(tf_test)
 
-            print('\nCOMPILE\n')
-            model.compile(
-            metrics=metrics)
+        print('\nSUMMARY\n')
+        print(model.summary())
+        print('\nPLOTTER\n')
+        tfdf.model_plotter.plot_model_in_colab(model)
 
-            print('\nFIT\n')
-            model.fit(tf_train)
-            print('\nEVALUATE\n')
-            model.evaluate(tf_test)
+        print('\nINSPECTOR\n')
+        inspector = model.make_inspector()
+        print("Model type:", inspector.model_type())
+        print("Number of trees:", inspector.num_trees())
+        print("Objective:", inspector.objective())
+        print("Input features:", inspector.features())
+        print("Tree:",inspector.extract_tree(0))
 
-            print('\nSUMMARY\n')
-            print(model.summary())
-            print('\nPLOTTER\n')
-            tfdf.model_plotter.plot_model_in_colab(model)
+        model.save(f'{save_path}_{self.label}_{self.date}-{self.time}')
 
-            print('\nINSPECTOR\n')
-            inspector = model.make_inspector()
-            print("Model type:", inspector.model_type())
-            print("Number of trees:", inspector.num_trees())
-            print("Objective:", inspector.objective())
-            print("Input features:", inspector.features())
-            print("Tree:",inspector.extract_tree(0))
 
-            model.save(f'{save_path}_{self.label}_{self.date}-{self.time}')
+    def train_deep(self, build_model, imp_train, imp_test, save_path, metrics, batch_size, epochs, lr, validation_split, process=None):
 
-        else:
+        data_train = pd.read_excel(imp_train, index_col=0)
+        data_test = pd.read_excel(imp_test, index_col=0)
+        model = build_model(data_train)
 
-            model.save(f'{save_path}_{self.date}-{self.time}.h5')
+        data_train = class_to_num(data_train, replace_all=True)
+        data_test =  class_to_num(data_test, replace_all=True)
+
+        model.compile(
+            loss="mean_squared_error",
+            optimizer=keras.optimizers.Adam(lr=lr),
+            metrics=metrices)
+
+        print(model.summary())
+
+        model.fit(
+            X_train, Y_train,
+            batch_size=batch_size,
+            epochs=epochs,
+            verbose=2,
+            validation_split=validation_split, 
+            callbacks=[keras.callbacks.EarlyStopping(patience=early_stop_patience)])
+
+
+        model.save(f'{save_path}_{self.date}-{self.time}.h5')
+
 
     def prediction(self, model_imp, imp, exp):
 
@@ -113,10 +153,10 @@ class deep_net:
                 data[f'{self.label}_predict'] = Y
 
         else:
-            model = models.load_model(self.path + '%s/%s/%s.h5'%(self.name,self.folder,model_imp))
+
+            model = models.load_model(model_imp)
 
             X = data.copy()
-
             Y = model.predict(X).reshape(-1)
 
         data.to_excel(exp)
