@@ -71,13 +71,14 @@ class deep_net:
 
         print('\nFIT\n')
         model.fit(tf_train)
-        print('\nEVALUATE\n')
-        model.evaluate(tf_test)
 
         print('\nSUMMARY\n')
         print(model.summary())
         print('\nPLOTTER\n')
         tfdf.model_plotter.plot_model_in_colab(model)
+
+        print('\nEVALUATE\n')
+        model.evaluate(tf_test)
 
         print('\nINSPECTOR\n')
         inspector = model.make_inspector()
@@ -90,21 +91,40 @@ class deep_net:
         model.save(f'{save_path}_{self.label}_{self.date}-{self.time}')
 
 
-    def train_deep(self, build_model, imp_train, imp_test, save_path, metrics, batch_size, epochs, lr, validation_split, process=None):
+    def train_deep(self, build_model, imp_train, imp_test, save_path, metrics, batch_size, epochs, lr, early_stop_patience, validation_split, process=None):
 
         data_train = pd.read_excel(imp_train, index_col=0)
         data_test = pd.read_excel(imp_test, index_col=0)
-        model = build_model(data_train)
 
         data_train = class_to_num(data_train, replace_all=True)
         data_test =  class_to_num(data_test, replace_all=True)
 
+        X_train  = data_train.copy()
+        Y_train = X_train.pop(self.label)
+        Y_train = tf.one_hot(Y_train,len(list(set(Y_train)))).numpy()
+
+        X_test  = data_test.copy()
+        Y_test = X_test.pop(self.label)
+        Y_test = tf.one_hot(Y_test,len(list(set(Y_test)))).numpy()
+
+        X_train, X_test = X_train.values, X_test.values
+
+        print('X_train : ',X_train.shape)
+        print('Y_train : ',Y_train.shape)
+
+        model = build_model(X_train, Y_train)
+
         model.compile(
             loss="mean_squared_error",
             optimizer=keras.optimizers.Adam(lr=lr),
-            metrics=metrices)
+            metrics=metrics)
 
         print(model.summary())
+
+        #X_train, Y_train, X_test, Y_test = X_train.T, Y_train.T, X_test.T, Y_test.T
+
+        print('X_train : ',X_train)
+        print('Y_train : ',Y_train)
 
         model.fit(
             X_train, Y_train,
@@ -113,6 +133,8 @@ class deep_net:
             verbose=2,
             validation_split=validation_split, 
             callbacks=[keras.callbacks.EarlyStopping(patience=early_stop_patience)])
+
+        model.evaluate(X_test,Y_test)
 
 
         model.save(f'{save_path}_{self.date}-{self.time}.h5')
@@ -162,6 +184,9 @@ class deep_net:
         data.to_excel(exp)
         print('***SAVED***')
         print(model_imp, exp)
+
+    def predict_deep():
+        pass
 
     def evaluate(self, model_imp, imp):
 
