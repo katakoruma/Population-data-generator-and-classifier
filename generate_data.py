@@ -2,16 +2,16 @@ import pandas as pd
 import numpy as np
 import numpy.random as nr
 import multiprocessing
-from functions import *
+from generator import *
 from plots import * 
 
 
-entries = 1000
+entries = 3000
 tasks = 10
 multiprocess = True
 
 save = True
-save_path = 'export/population_data.xlsx'
+save_path = 'data/population_data.xlsx'
 
 order = ['sex', 'age', 'eye_color', 'height', 'weight', 'bmi', 'education', 'income', 'alcohol', 'smoke', 'sport']
 #order = ['sex', 'age', 'height', 'education', 'income', 'bmi', 'alcohol', 'smoke', 'sport']
@@ -84,5 +84,5 @@ if __name__ == '__main__':
                         ):
         #print(data[data['sport'] >= 8])
         print(data)
-        plot_bmi_sport(data)
+        #plot_bmi_sport(data)
 
