@@ -6,4 +6,4 @@ It is partly based on real data and observed correlations (sources are given), b
 
 #### !!! Please do not treat this generator as representative !!!
 
-In a second step those generated data is used to train neural networks or decision trees and evaluate their quality.
+In a second step those generated data is used to train neural networks or decision trees.
